@@ -20,6 +20,7 @@
 #ifndef PAWNS_H_INCLUDED
 #define PAWNS_H_INCLUDED
 
+#include "bitcount.h"
 #include "misc.h"
 #include "position.h"
 #include "types.h"
@@ -49,6 +50,11 @@ struct Entry {
 
   int pawns_on_same_color_squares(Color c, Square s) const {
     return pawnsOnSquares[c][!!(DarkSquares & s)];
+  }
+
+  int pawns_on_starting_squares(const Position& pos) const {
+    return popcount<Full> ( (Rank2BB & pos.pieces(WHITE,PAWN) ) |
+                            (Rank7BB & pos.pieces(BLACK,PAWN) ) );
   }
 
   template<Color Us>
