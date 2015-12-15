@@ -242,6 +242,8 @@ Entry* probe(const Position& pos) {
   e->key = key;
   e->score = evaluate<WHITE>(pos, e) - evaluate<BLACK>(pos, e);
   e->asymmetry = popcount<Max15>(e->semiopenFiles[WHITE] ^ e->semiopenFiles[BLACK]);
+  e->pawnsStartingSquares = popcount<Full> ((Rank2BB & pos.pieces(WHITE,PAWN) ) |
+                                            (Rank7BB & pos.pieces(BLACK,PAWN) ) );
   return e;
 }
 

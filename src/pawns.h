@@ -39,6 +39,7 @@ struct Entry {
   Bitboard pawn_attacks_span(Color c) const { return pawnAttacksSpan[c]; }
   int pawn_span(Color c) const { return pawnSpan[c]; }
   int pawn_asymmetry() const { return asymmetry; }
+  int pawns_on_starting_squares() const { return pawnsStartingSquares; }
 
   int semiopen_file(Color c, File f) const {
     return semiopenFiles[c] & (1 << f);
@@ -50,11 +51,6 @@ struct Entry {
 
   int pawns_on_same_color_squares(Color c, Square s) const {
     return pawnsOnSquares[c][!!(DarkSquares & s)];
-  }
-
-  int pawns_on_starting_squares(const Position& pos) const {
-    return popcount<Full> ( (Rank2BB & pos.pieces(WHITE,PAWN) ) |
-                            (Rank7BB & pos.pieces(BLACK,PAWN) ) );
   }
 
   template<Color Us>
@@ -81,6 +77,7 @@ struct Entry {
   int pawnSpan[COLOR_NB];
   int pawnsOnSquares[COLOR_NB][COLOR_NB]; // [color][light/dark squares]
   int asymmetry;
+  int pawnsStartingSquares;
 };
 
 typedef HashTable<Entry, 16384> Table;
