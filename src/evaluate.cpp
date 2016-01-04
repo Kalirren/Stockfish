@@ -646,7 +646,7 @@ namespace {
   }
 
 
-  // evaluate_space() computes the space evaluation for a given side. The
+  // evaluate_space_opening() computes the space evaluation for a given side. The
   // space evaluation is a simple bonus based on the number of safe squares
   // available for minor pieces on the central four files on ranks 2--4. Safe
   // squares one, two or three squares behind a friendly pawn are counted
@@ -852,9 +852,9 @@ Value Eval::evaluate(const Position& pos) {
                 - evaluate_space_opening<BLACK>(pos, ei)) * Weights[Space];
 
   // Evaluate space on the wings for both sides if both sides' pawns block the center
-  if (ei.pi->blocked_center(Us) && ei.pi->blocked_center(Them))
+  if (ei.pi->blocked_center(WHITE) && ei.pi->blocked_center(BLACK))
       score += (  evaluate_space_closed<WHITE>(pos, ei)
-                - evaluate_space_closed<BLACK>(pos, ei)) * Weights[Space]);
+                - evaluate_space_closed<BLACK>(pos, ei)) * Weights[Space];
 
   // Evaluate position potential for the winning side
   score += evaluate_initiative(pos, ei.pi->pawn_asymmetry(), eg_value(score));
@@ -876,8 +876,10 @@ Value Eval::evaluate(const Position& pos) {
       Trace::add(PAWN, ei.pi->pawns_score());
       Trace::add(MOBILITY, mobility[WHITE] * Weights[Mobility]
                          , mobility[BLACK] * Weights[Mobility]);
-      Trace::add(SPACE, evaluate_space<WHITE>(pos, ei) * Weights[Space]
-                      , evaluate_space<BLACK>(pos, ei) * Weights[Space]);
+      Trace::add(OPENINGSPACE, evaluate_space_opening<WHITE>(pos, ei) * Weights[Space]
+                      , evaluate_space_opening<BLACK>(pos, ei) * Weights[Space]);
+      Trace::add(WINGSPACE, evaluate_space_closed<WHITE>(pos, ei) * Weights[Space]
+                      , evaluate_space_closed<BLACK>(pos, ei) * Weights[Space]);
       Trace::add(TOTAL, score);
   }
 
