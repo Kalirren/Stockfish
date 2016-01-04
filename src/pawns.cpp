@@ -117,7 +117,8 @@ namespace {
 
     e->passedPawns[Us] = e->pawnAttacksSpan[Us] = 0;
     e->kingSquares[Us] = SQ_NONE;
-    e->semiopenFiles[Us] = e->blockedFiles[Us] = 0xFF;
+    e->semiopenFiles[Us] = 0xFF;
+    e->blockedFiles[Us] = 0x00;
     e->pawnAttacks[Us] = shift_bb<Right>(ourPawns) | shift_bb<Left>(ourPawns);
     e->pawnAttacks[Them] = shift_bb<TheirRight>(theirPawns) | shift_bb<TheirLeft>(theirPawns);
     //This makes the computation for pawnAttacks occur twice,
@@ -146,14 +147,14 @@ namespace {
         connected   =   supported | phalanx;
         isolated    =  !neighbours;
 
-        //Test for pseudo-fixed pawn.
+        //Test for pseudo-fixed pawns, which are used for wing space computation.
         //Considering only pawn structure, a pawn is pseudo-fixed if the square in
         //front of it is controlled or occupied by the enemy pawn structure, and
         //it is neither a lever nor part of a phalanx.
-        //We penalize space on sides containing all pseudo-fixed pawns.
+
         pseudoFixed = ( SquareBB[s + Up] & (theirPawns | e->pawnAttacks[Them]) )
                         && !phalanx && !lever;
-        if (pseudoFixed) { e->blockedFiles[Us] &= ~(1 << f); }
+        if (pseudoFixed) { e->blockedFiles[Us] |= ~(1 << f); }
 
         // Test for backward pawn.
         // If the pawn is passed, isolated, lever or connected it cannot be

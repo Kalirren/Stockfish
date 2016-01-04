@@ -108,10 +108,10 @@ namespace {
 
 
   // Evaluation weights, indexed by the corresponding evaluation term
-  enum { Mobility, PawnStructure, PassedPawns, Space, KingSafety };
+  enum { Mobility, PawnStructure, PassedPawns, CentralSpace, WingSpace, KingSafety };
 
   const struct Weight { int mg, eg; } Weights[] = {
-    {266, 334}, {214, 203}, {193, 262}, {47, 0}, {330, 0}
+    {266, 334}, {214, 203}, {193, 262}, {47, 0}, {15,0}, {330, 0}
   };
 
   Score operator*(Score s, const Weight& w) {
@@ -849,12 +849,12 @@ Value Eval::evaluate(const Position& pos) {
   // Evaluate space in the center for both sides, only during opening
   if (pos.non_pawn_material(WHITE) + pos.non_pawn_material(BLACK) >= 12222)
       score += (  evaluate_space_opening<WHITE>(pos, ei)
-                - evaluate_space_opening<BLACK>(pos, ei)) * Weights[Space];
+                - evaluate_space_opening<BLACK>(pos, ei)) * Weights[CentralSpace];
 
   // Evaluate space on the wings for both sides if both sides' pawns block the center
   if (ei.pi->blocked_center(WHITE) && ei.pi->blocked_center(BLACK))
       score += (  evaluate_space_closed<WHITE>(pos, ei)
-                - evaluate_space_closed<BLACK>(pos, ei)) * Weights[Space];
+                - evaluate_space_closed<BLACK>(pos, ei)) * Weights[WingSpace];
 
   // Evaluate position potential for the winning side
   score += evaluate_initiative(pos, ei.pi->pawn_asymmetry(), eg_value(score));
@@ -876,10 +876,10 @@ Value Eval::evaluate(const Position& pos) {
       Trace::add(PAWN, ei.pi->pawns_score());
       Trace::add(MOBILITY, mobility[WHITE] * Weights[Mobility]
                          , mobility[BLACK] * Weights[Mobility]);
-      Trace::add(CENTRALSPACE, evaluate_space_opening<WHITE>(pos, ei) * Weights[Space]
-                      , evaluate_space_opening<BLACK>(pos, ei) * Weights[Space]);
-      Trace::add(WINGSPACE, evaluate_space_closed<WHITE>(pos, ei) * Weights[Space]
-                      , evaluate_space_closed<BLACK>(pos, ei) * Weights[Space]);
+      Trace::add(CENTRALSPACE, evaluate_space_opening<WHITE>(pos, ei) * Weights[CentralSpace]
+                      , evaluate_space_opening<BLACK>(pos, ei) * Weights[CentralSpace]);
+      Trace::add(WINGSPACE, evaluate_space_closed<WHITE>(pos, ei) * Weights[WingSpace]
+                      , evaluate_space_closed<BLACK>(pos, ei) * Weights[WingSpace]);
       Trace::add(TOTAL, score);
   }
 
