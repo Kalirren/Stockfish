@@ -120,6 +120,8 @@ namespace {
     e->semiopenFiles[Us] = e->blockedFiles[Us] = 0xFF;
     e->pawnAttacks[Us] = shift_bb<Right>(ourPawns) | shift_bb<Left>(ourPawns);
     e->pawnAttacks[Them] = shift_bb<TheirRight>(theirPawns) | shift_bb<TheirLeft>(theirPawns);
+    //This makes the computation for pawnAttacks occur twice,
+    //once for each side. Optimization should be possible.
     e->pawnsOnSquares[Us][BLACK] = popcount<Max15>(ourPawns & DarkSquares);
     e->pawnsOnSquares[Us][WHITE] = pos.count<PAWN>(Us) - e->pawnsOnSquares[Us][BLACK];
 
@@ -148,11 +150,9 @@ namespace {
         //Considering only pawn structure, a pawn is pseudo-fixed if the square in
         //front of it is controlled or occupied by the enemy pawn structure, and
         //it is neither a lever nor part of a phalanx.
-        //We penalize space on sides containing pseudo-fixed pawns.
-        pseudoFixed = ( (SquareBB(s + Up) & (theirPawns | pawnAttacks[Them]) )
+        //We penalize space on sides containing all pseudo-fixed pawns.
+        pseudoFixed = ( SquareBB[s + Up] & (theirPawns | e->pawnAttacks[Them]) )
                         && !phalanx && !lever;
-                        //This makes the computation for pawnAttacks occur twice,
-                        //once for each side. Optimization should be possible.
         if (pseudoFixed) { e->blockedFiles[Us] &= ~(1 << f); }
 
         // Test for backward pawn.
