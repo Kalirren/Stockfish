@@ -33,7 +33,7 @@ namespace {
   namespace Trace {
 
     enum Term { // First 8 entries are for PieceType
-      MATERIAL = 8, IMBALANCE, MOBILITY, THREAT, PASSED, SPACE, TOTAL, TERM_NB
+      MATERIAL = 8, IMBALANCE, MOBILITY, THREAT, PASSED, CENTRALSPACE, WINGSPACE, TOTAL, TERM_NB
     };
 
     double scores[TERM_NB][COLOR_NB][PHASE_NB];
@@ -876,7 +876,7 @@ Value Eval::evaluate(const Position& pos) {
       Trace::add(PAWN, ei.pi->pawns_score());
       Trace::add(MOBILITY, mobility[WHITE] * Weights[Mobility]
                          , mobility[BLACK] * Weights[Mobility]);
-      Trace::add(OPENINGSPACE, evaluate_space_opening<WHITE>(pos, ei) * Weights[Space]
+      Trace::add(CENTRALSPACE, evaluate_space_opening<WHITE>(pos, ei) * Weights[Space]
                       , evaluate_space_opening<BLACK>(pos, ei) * Weights[Space]);
       Trace::add(WINGSPACE, evaluate_space_closed<WHITE>(pos, ei) * Weights[Space]
                       , evaluate_space_closed<BLACK>(pos, ei) * Weights[Space]);
@@ -918,7 +918,8 @@ std::string Eval::trace(const Position& pos) {
      << "    King safety | " << Term(KING)
      << "        Threats | " << Term(THREAT)
      << "   Passed pawns | " << Term(PASSED)
-     << "          Space | " << Term(SPACE)
+     << "  Central Space | " << Term(CENTRALSPACE)
+     << "     Wing Space | " << Term(WINGSPACE)
      << "----------------+-------------+-------------+-------------\n"
      << "          Total | " << Term(TOTAL);
 
