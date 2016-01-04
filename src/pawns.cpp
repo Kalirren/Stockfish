@@ -94,11 +94,12 @@ namespace {
 
   template<Color Us>
   Score evaluate(const Position& pos, Pawns::Entry* e) {
-
     const Color  Them  = (Us == WHITE ? BLACK    : WHITE);
     const Square Up    = (Us == WHITE ? DELTA_N  : DELTA_S);
     const Square Right = (Us == WHITE ? DELTA_NE : DELTA_SW);
     const Square Left  = (Us == WHITE ? DELTA_NW : DELTA_SE);
+    const Square TheirLeft = (Us == WHITE ? DELTA_SE : DELTA_NW);
+    const Square TheirRight = (Us ==WHITE ? DELTA_SW : DELTA_NE);
 
     const Bitboard CenterBindMask =
       Us == WHITE ? (FileDBB | FileEBB) & (Rank5BB | Rank6BB | Rank7BB)
@@ -106,7 +107,7 @@ namespace {
 
     Bitboard b, neighbours, doubled, supported, phalanx;
     Square s;
-    bool passed, isolated, opposed, backward, lever, connected;
+    bool passed, isolated, opposed, backward, lever, connected, pseudoFixed;
     Score score = SCORE_ZERO;
     const Square* pl = pos.squares<PAWN>(Us);
     const Bitboard* pawnAttacksBB = StepAttacksBB[make_piece(Us, PAWN)];
@@ -116,8 +117,9 @@ namespace {
 
     e->passedPawns[Us] = e->pawnAttacksSpan[Us] = 0;
     e->kingSquares[Us] = SQ_NONE;
-    e->semiopenFiles[Us] = 0xFF;
+    e->semiopenFiles[Us] = e->blockedFiles[Us] = 0xFF;
     e->pawnAttacks[Us] = shift_bb<Right>(ourPawns) | shift_bb<Left>(ourPawns);
+    e->pawnAttacks[Them] = shift_bb<TheirRight>(theirPawns) | shift_bb<TheirLeft>(theirPawns);
     e->pawnsOnSquares[Us][BLACK] = popcount<Max15>(ourPawns & DarkSquares);
     e->pawnsOnSquares[Us][WHITE] = pos.count<PAWN>(Us) - e->pawnsOnSquares[Us][BLACK];
 
@@ -141,6 +143,17 @@ namespace {
         supported   =   neighbours & rank_bb(s - Up);
         connected   =   supported | phalanx;
         isolated    =  !neighbours;
+
+        //Test for pseudo-fixed pawn.
+        //Considering only pawn structure, a pawn is pseudo-fixed if the square in
+        //front of it is controlled or occupied by the enemy pawn structure, and
+        //it is neither a lever nor part of a phalanx.
+        //We penalize space on sides containing pseudo-fixed pawns.
+        pseudoFixed = ( (SquareBB(s + Up) & (theirPawns | pawnAttacks[Them]) )
+                        && !phalanx && !lever;
+                        //This makes the computation for pawnAttacks occur twice,
+                        //once for each side. Optimization should be possible.
+        if (pseudoFixed) { e->blockedFiles[Us] &= ~(1 << f); }
 
         // Test for backward pawn.
         // If the pawn is passed, isolated, lever or connected it cannot be

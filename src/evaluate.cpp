@@ -653,7 +653,7 @@ namespace {
   // twice. Finally, the space bonus is multiplied by a weight. The aim is to
   // improve play on game opening.
   template<Color Us>
-  Score evaluate_space(const Position& pos, const EvalInfo& ei) {
+  Score evaluate_space_opening(const Position& pos, const EvalInfo& ei) {
 
     const Color Them = (Us == WHITE ? BLACK : WHITE);
     const Bitboard SpaceMask =
@@ -684,6 +684,34 @@ namespace {
     return make_score(bonus * weight * weight, 0);
   }
 
+  template<Color Us>
+  Score evaluate_space_closed(const Position& pos, const EvalInfo& ei) {
+
+    const Color Them = (Us == WHITE ? BLACK : WHITE);
+    const Bitboard QSideSpaceMask =
+      Us == WHITE ? (FileABB | FileBBB | FileCBB) & (Rank1BB | Rank2BB | Rank3BB | Rank4BB | Rank5BB)
+                  : (FileABB | FileBBB | FileCBB) & (Rank8BB | Rank7BB | Rank6BB | Rank5BB | Rank4BB);
+    const Bitboard KSideSpaceMask =
+      Us == WHITE ? (FileFBB | FileGBB | FileHBB) & (Rank1BB | Rank2BB | Rank3BB | Rank4BB | Rank5BB)
+                  : (FileFBB | FileGBB | FileHBB) & (Rank8BB | Rank7BB | Rank6BB | Rank5BB | Rank4BB);
+    // Find the safe squares for our rooks inside the area defined by
+    // QSideSpaceMask. A square is unsafe if it is attacked by an enemy
+    // pawn or minor, or if it is undefended and attacked by an enemy piece.
+    Bitboard rookSafe =  ~pos.pieces(Us, PAWN)
+                   & ~ei.attackedBy[Them][PAWN]
+                   & ~ei.attackedBy[Them][BISHOP] & ~ei.attackedBy[Them][KNIGHT]
+                   & (ei.attackedBy[Us][ALL_PIECES] | ~ei.attackedBy[Them][ALL_PIECES]);
+
+    Bitboard QSideSafe = QSideSpaceMask & rookSafe;
+    Bitboard KSideSafe = KSideSpaceMask & rookSafe;
+
+    int Qbonus = popcount<Max15>(QSideSafe);
+    int Kbonus = popcount<Max15>(KSideSafe);
+    int weight = pos.count<ROOK>(Us) + pos.count<ROOK>(Them);
+    int Qweight = ei.pi->unblocked_side(Us, FILE_C, true) ? weight : weight / 2;
+    int Kweight = ei.pi->unblocked_side(Us, FILE_F, false) ? weight : weight / 2;
+    return make_score(Qbonus * Qweight * Qweight + Kbonus * Kweight * Kweight, 0);
+  }
 
   // evaluate_initiative() computes the initiative correction value for the
   // position, i.e. second order bonus/malus based on the known attacking/defending
@@ -818,10 +846,15 @@ Value Eval::evaluate(const Position& pos) {
           score -= int(relative_rank(BLACK, frontmost_sq(BLACK, b))) * Unstoppable;
   }
 
-  // Evaluate space for both sides, only during opening
+  // Evaluate space in the center for both sides, only during opening
   if (pos.non_pawn_material(WHITE) + pos.non_pawn_material(BLACK) >= 12222)
-      score += (  evaluate_space<WHITE>(pos, ei)
-                - evaluate_space<BLACK>(pos, ei)) * Weights[Space];
+      score += (  evaluate_space_opening<WHITE>(pos, ei)
+                - evaluate_space_opening<BLACK>(pos, ei)) * Weights[Space];
+
+  // Evaluate space on the wings for both sides if both sides' pawns block the center
+  if (ei.pi->blocked_center(Us) && ei.pi->blocked_center(Them))
+      score += (  evaluate_space_closed<WHITE>(pos, ei)
+                - evaluate_space_closed<BLACK>(pos, ei)) * Weights[Space]);
 
   // Evaluate position potential for the winning side
   score += evaluate_initiative(pos, ei.pi->pawn_asymmetry(), eg_value(score));

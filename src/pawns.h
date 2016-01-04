@@ -45,7 +45,19 @@ struct Entry {
 
   int semiopen_side(Color c, File f, bool leftSide) const {
     return semiopenFiles[c] & (leftSide ? (1 << f) - 1 : ~((1 << (f + 1)) - 1));
+  }// returns non-zero (i.e. true) if at least one file is open on the side
+
+  int blocked_file(Color c, File f) const {
+    return blockedFiles[c] & (1 << f);
   }
+
+  int unblocked_side(Color c, File f, bool leftSide) const {
+    return 0xFF & ~blockedFiles[c] & (leftSide ? (1 << f) - 1 : ~((1 << (f + 1)) - 1));
+  }// returns non-zero if at least one file on the side is unblocked.
+
+  bool blocked_center(Color c) const {
+    return blocked_file(c, FILE_D) && blocked_file(c, FILE_E);
+  } // most conceptually clear; optimization probably possible
 
   int pawns_on_same_color_squares(Color c, Square s) const {
     return pawnsOnSquares[c][!!(DarkSquares & s)];
@@ -72,6 +84,7 @@ struct Entry {
   Score kingSafety[COLOR_NB];
   int castlingRights[COLOR_NB];
   int semiopenFiles[COLOR_NB];
+  int blockedFiles[COLOR_NB];
   int pawnSpan[COLOR_NB];
   int pawnsOnSquares[COLOR_NB][COLOR_NB]; // [color][light/dark squares]
   int asymmetry;
